@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users can only read and write their own profile data.
+    match /users/{userId} {
+      allow read, update, delete: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn();
+    }
+    
+    // Users can read, create, update, and delete their own chats.
+    match /users/{userId}/chats/{chatId} {
+      allow read, list, create, update, delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // Users can read, write, and delete their own chat messages.
+    // The separate rule for chats/{chatId} above handles the chat document itself.
+    match /users/{userId}/chats/{chatId}/messages/{messageId} {
+        allow read, list, create, update, delete: if isSignedIn() && isOwner(userId);
+    }
+  }
+}
